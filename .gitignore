@@ -1,0 +1,17 @@
+# ---- OS-specific files ----
+.DS_Store
+Thumbs.db
+
+# ---- Rust build artifacts ----
+/target/
+**/*.rs.bk
+
+# ---- Cargo ----
+/Cargo.lock
+
+# ---- IDE-related directories ----
+.vscode/
+.idea/
+
+# ---- Logs, generated files ----
+*.log
