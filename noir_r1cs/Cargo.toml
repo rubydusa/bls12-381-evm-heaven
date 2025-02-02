@@ -12,3 +12,6 @@ noirc_artifacts = { git = "https://github.com/noir-lang/noir.git", package = "no
 acir_field = { git = "https://github.com/noir-lang/noir.git", package = "acir_field", branch = "master" }
 ark-bls12-381 = { version = "^0.5.0", default-features = false, features = [ "curve" ] }
 serde_json = "1.0.135"
+serde = "1.0.217"
+ark-ff = "0.5.0"
+ark-relations = "0.5.1"
