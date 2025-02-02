@@ -1,0 +1,3 @@
+[submodule "pectra-playground/lib/forge-std"]
+	path = pectra-playground/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
