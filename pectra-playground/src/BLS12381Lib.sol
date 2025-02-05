@@ -25,19 +25,28 @@ library BLS12381Lib {
     bytes constant G1_GENERATOR = hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb0000000000000000000000000000000008b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1";
     bytes constant G2_GENERATOR = hex"00000000000000000000000000000000024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb80000000000000000000000000000000013e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e000000000000000000000000000000000ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801000000000000000000000000000000000606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be";
 
+    function g1Generator() internal pure returns (G1Point memory result) {
+        // assembly does not support inline bytes constants
+        bytes memory _g1Generator = G1_GENERATOR;
+        assembly { result := _g1Generator }
+    }
+
+    function g2Generator() internal pure returns (G2Point memory result) {
+        bytes memory _g2Generator = G2_GENERATOR;
+        assembly { result := _g2Generator }
+    }
     /**
      * @dev Performs scalar multiplication of the BLS12-381 G1 generator point
      * @param scalar The scalar value to multiply with
      * @return result The resulting point on G1
      */
-    function mulBaseG1(uint256 scalar) internal view returns (bytes memory result) {
+    function mulBaseG1(uint256 scalar) internal view returns (G1Point memory result) {
         bytes memory input = bytes.concat(G1_GENERATOR, abi.encode(scalar));
         
-        bool success;
-        (success, result) = G1_MSM_PRECOMPILE.staticcall(input);
-        require(success, UnexpectedError(result));
-        
-        return result;
+        (bool success, bytes memory resultBytes) = G1_MSM_PRECOMPILE.staticcall(input);
+        require(success, UnexpectedError(resultBytes));
+
+        assembly { result := resultBytes }
     }
 
     /**
@@ -45,14 +54,21 @@ library BLS12381Lib {
      * @param scalar The scalar value to multiply with
      * @return result The resulting point on G2
      */
-    function mulBaseG2(uint256 scalar) internal view returns (bytes memory result) {
+    function mulBaseG2(uint256 scalar) internal view returns (G2Point memory result) {
         bytes memory input = bytes.concat(G2_GENERATOR, abi.encode(scalar));
         
-        bool success;
-        (success, result) = G2_MSM_PRECOMPILE.staticcall(input);
-        require(success, UnexpectedError(result));
+        (bool success, bytes memory resultBytes) = G2_MSM_PRECOMPILE.staticcall(input);
+        require(success, UnexpectedError(resultBytes));
         
-        return result;
+        assembly { result := resultBytes }
+    }
+
+    function asBytes(G1Point memory point) internal pure returns (bytes memory result) {
+        assembly { result := point }
+    }
+
+    function asBytes(G2Point memory point) internal pure returns (bytes memory result) {
+        assembly { result := point }
     }
 
     error UnexpectedError(bytes data);
