@@ -4,6 +4,7 @@ pragma solidity >=0.8.25;
 // internal name
 interface _T {
     // pointers to bytes
+    // NOTE: these types cannot be used in calldata
     type Fp is uint256;
     type Fp2 is uint256;
     type G1Point is uint256;
@@ -14,6 +15,11 @@ interface _T {
 interface IBLSTypes is _T {}
 
 library BLS12381Lib {
+    using BLS12381Lib for _T.G1Point;
+    using BLS12381Lib for _T.G2Point;
+    using BLS12381Lib for _T.Fp;
+    using BLS12381Lib for _T.Fp2;
+
     // BLS12-381 precompile addresses
     address constant G1_ADD_PRECOMPILE = address(0x0B);
     address constant G1_MSM_PRECOMPILE = address(0x0C);
@@ -58,6 +64,19 @@ library BLS12381Lib {
     }
 
     /**
+     * @dev Multiplies a G1 curve point by a scalar using the G1 multi-scalar multiplication precompile
+     * @param point The G1 point to multiply
+     * @param scalar The scalar to multiply the point by
+     * @return result The resulting G1 point after scalar multiplication
+     */
+    function mulG1(_T.G1Point point, uint256 scalar) internal view returns (_T.G1Point result) {
+        bytes memory input = bytes.concat(point.mem(), abi.encode(scalar));
+        (bool success, bytes memory resultBytes) = G1_MSM_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
+    /**
      * @dev Multiplies the G2 generator point by a scalar using the G2 multi-scalar multiplication precompile
      * @param scalar The scalar to multiply the generator point by
      * @return result The resulting G2 point after scalar multiplication
@@ -68,33 +87,47 @@ library BLS12381Lib {
         require(success, PrecompileError(resultBytes));
         assembly { result := resultBytes }
     }
+
+    /**
+     * @dev Multiplies a G2 curve point by a scalar using the G2 multi-scalar multiplication precompile
+     * @param point The G2 point to multiply
+     * @param scalar The scalar to multiply the point by
+     * @return result The resulting G2 point after scalar multiplication
+     */
+    function mulG2(_T.G2Point point, uint256 scalar) internal view returns (_T.G2Point result) {
+        bytes memory input = bytes.concat(point.mem(), abi.encode(scalar));
+        (bool success, bytes memory resultBytes) = G2_MSM_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
     /**
      * @dev Converts an Fp field element to its byte representation
      * @param element The Fp field element to convert
      * @return result The byte representation of the field element
      */
-    function asBytes(_T.Fp element) internal pure returns (bytes memory result) { assembly { result := element } }
+    function mem(_T.Fp element) internal pure returns (bytes memory result) { assembly { result := element } }
 
     /**
      * @dev Converts an Fp2 field element to its byte representation
      * @param element The Fp2 field element to convert
      * @return result The byte representation of the field element
      */
-    function asBytes(_T.Fp2 element) internal pure returns (bytes memory result) { assembly { result := element } }
+    function mem(_T.Fp2 element) internal pure returns (bytes memory result) { assembly { result := element } }
 
     /**
      * @dev Converts a G1 curve point to its byte representation
-     * @param element The G1 curve point to convert
+     * @param point The G1 curve point to convert
      * @return result The byte representation of the curve point
      */
-    function asBytes(_T.G1Point element) internal pure returns (bytes memory result) { assembly { result := element } }
+    function mem(_T.G1Point point) internal pure returns (bytes memory result) { assembly { result := point } }
 
     /**
      * @dev Converts a G2 curve point to its byte representation
-     * @param element The G2 curve point to convert
+     * @param point The G2 curve point to convert
      * @return result The byte representation of the curve point
      */
-    function asBytes(_T.G2Point element) internal pure returns (bytes memory result) { assembly { result := element } }
+    function mem(_T.G2Point point) internal pure returns (bytes memory result) { assembly { result := point } }
 
     /**
      * @dev Error thrown when a precompile call fails unexpectedly
