@@ -135,3 +135,122 @@ library BLS12381Lib {
      */
     error PrecompileError(bytes data);
 }
+
+// This library implements hash-to-curve primitives as specified in RFC9380
+// NOTE: that this could be less efficient than implementations that are optimized for the EVM, but it is standardized
+library RFC9380 {
+    uint256 constant B_IN_BYTES = 32; // SHA-256 output size in bytes
+    uint256 constant S_IN_BYTES = 64; // SHA-256 block size in bytes
+
+    /**
+     * @dev Expands a message using the expand_message_xmd method as per RFC9380.
+     * @param message The input message as bytes.
+     * @param dst The domain separation tag as a string.
+     * @param len_in_bytes The desired length of the output in bytes.
+     * @return result The expanded message as a byte array.
+     */
+    function expandMessageXMD(
+        bytes memory message,
+        string memory dst,
+        uint16 len_in_bytes
+    ) internal pure returns (bytes memory result) {
+        // Step 1: Calculate ell
+        uint256 ell = (len_in_bytes + B_IN_BYTES - 1) / B_IN_BYTES;
+
+        // Step 2: Perform checks
+        if (ell > 255) revert EllTooLarge(ell);
+        if (len_in_bytes > 65535) revert LengthTooLarge(len_in_bytes);
+        if (bytes(dst).length > 255) revert DSTTooLong(bytes(dst).length);
+
+        // Step 3: Construct DST_prime
+        bytes memory DST_bytes = bytes(dst);
+        bytes memory DST_prime = abi.encodePacked(DST_bytes, I2OSP(uint256(DST_bytes.length), 1));
+
+        // Step 4: Create Z_pad
+        bytes memory Z_pad = I2OSP(0, S_IN_BYTES);
+
+        // Step 5: Encode len_in_bytes
+        bytes memory l_i_b_str = I2OSP(uint256(len_in_bytes), 2);
+
+        // Step 6: Construct msg_prime
+        bytes memory msg_prime = abi.encodePacked(Z_pad, message, l_i_b_str, I2OSP(0, 1), DST_prime);
+
+        // Step 7: Compute b_0
+        bytes32 b0 = sha256(msg_prime);
+
+        // Step 8: Compute b_1
+        bytes memory b0_bytes = abi.encodePacked(b0);
+        bytes memory b1_input = abi.encodePacked(b0_bytes, I2OSP(1, 1), DST_prime);
+        bytes32 b1 = sha256(b1_input);
+
+        // Initialize array to hold b_i values
+        bytes memory uniform_bytes = abi.encodePacked(b1);
+
+        // Initialize previous block
+        bytes32 prev_block = b1;
+
+        // Step 9: Compute b_i for i = 2 to ell
+        for (uint256 i = 2; i <= ell; i++) {
+            // strxor(b0, b_{i-1})
+            bytes32 xor_input = b0 ^ prev_block;
+
+            // I2OSP(i, 1)
+            bytes memory i_bytes = I2OSP(i, 1);
+
+            // Construct input for hashing
+            bytes memory bi_input = abi.encodePacked(xor_input, i_bytes, DST_prime);
+
+            // Compute b_i
+            bytes32 bi = sha256(bi_input);
+
+            // Append b_i to uniform_bytes
+            uniform_bytes = abi.encodePacked(uniform_bytes, bi);
+
+            // Update previous block
+            prev_block = bi;
+        }
+
+        // Step 11: Truncate to desired length
+        assembly {
+            result := uniform_bytes
+            mstore(result, len_in_bytes)
+        }
+    }
+
+    /**
+     * @dev Converts a non-negative integer to its big-endian byte representation.
+     * @param x The integer to convert.
+     * @param length The desired length of the output byte array.
+     * @return o The resulting byte array.
+     */
+    function I2OSP(uint256 x, uint256 length) internal pure returns (bytes memory o) {
+        o = new bytes(length);
+        for (uint256 i = 0; i < length; i++) {
+            o[length - 1 - i] = bytes1(uint8(x >> (8 * i)));
+        }
+        return o;
+    }
+
+    /**
+     * @dev Slices a byte array from start to end.
+     * @param data The byte array to slice.
+     * @param start The starting index.
+     * @param length The number of bytes to slice.
+     * @return result The sliced byte array.
+     */
+    function slice(
+        bytes memory data,
+        uint256 start,
+        uint256 length
+    ) internal pure returns (bytes memory result) {
+        require(data.length >= start + length, "RFC9380: slice out of bounds");
+        result = new bytes(length);
+        for (uint256 i = 0; i < length; i++) {
+            result[i] = data[start + i];
+        }
+    }
+
+    error EllTooLarge(uint256 ell);
+    error LengthTooLarge(uint256 len_in_bytes);
+    error DSTTooLong(uint256 dst_length);
+}
