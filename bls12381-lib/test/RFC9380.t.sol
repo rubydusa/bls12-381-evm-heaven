@@ -86,14 +86,10 @@ contract RFC9380Test is Test, ExpandMessageXMDTestVectors {
     function test_expand_message_xmd() public pure {
         // https://www.rfc-editor.org/rfc/rfc9380.html#name-expand-test-vectors
         ExpandMessageXMDTestVector[] memory vectors = expandMessageXMDTestVectors();
-        console.log("vectors length: ", vectors.length);
         for (uint256 i = 0; i < vectors.length; i++) {
             ExpandMessageXMDTestVector memory vector = vectors[i];
             bytes memory result = RFC9380.expandMessageXMD(bytes(vector.message), XMD_DST, vector.len_in_bytes);
-            // assertEq(result, vector.uniform_bytes);
-            bool is_equal = keccak256(result) == keccak256(vector.uniform_bytes);
-            console.log("i: ", i);
-            console.log("is_equal: ", is_equal);
+            assertEq(result, vector.uniform_bytes);
         }
     }
 }

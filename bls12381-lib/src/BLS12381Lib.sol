@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
-import {console} from "forge-std/console.sol";
-import {Vm} from "forge-std/Vm.sol";
-
 // internal name
 interface _T {
     // pointers to bytes
@@ -145,16 +142,6 @@ library RFC9380 {
     uint256 constant B_IN_BYTES = 32; // SHA-256 output size in bytes
     uint256 constant S_IN_BYTES = 64; // SHA-256 block size in bytes
 
-    struct ExpandMessageXMDMemory {
-        uint256 ell;
-        uint256 len_in_bytes;
-        bytes DST_prime;
-        bytes Z_pad;
-        bytes l_i_b_str;
-        bytes msg_prime;
-        bytes32 b0;
-        bytes32 b1;
-    }
     /**
      * @dev Expands a message using the expand_message_xmd method as per RFC9380.
      * @param message The input message as bytes.
@@ -167,14 +154,11 @@ library RFC9380 {
         string memory dst,
         uint16 len_in_bytes
     ) internal pure returns (bytes memory result) {
-        ExpandMessageXMDMemory memory mem;
-        bytes memory uniform_bytes;
-        {
         // Step 1: Calculate ell
-        mem.ell = (len_in_bytes + B_IN_BYTES - 1) / B_IN_BYTES;
+        uint256 ell = (len_in_bytes + B_IN_BYTES - 1) / B_IN_BYTES;
 
         // Step 2: Perform checks
-        if (mem.ell > 255) revert EllTooLarge(mem.ell);
+        if (ell > 255) revert EllTooLarge(ell);
         if (len_in_bytes > 65535) revert LengthTooLarge(len_in_bytes);
         if (bytes(dst).length > 255) revert DSTTooLong(bytes(dst).length);
 
@@ -200,13 +184,13 @@ library RFC9380 {
         bytes32 b1 = sha256(b1_input);
 
         // Initialize array to hold b_i values
-        uniform_bytes = abi.encodePacked(b1);
+        bytes memory uniform_bytes = abi.encodePacked(b1);
 
         // Initialize previous block
         bytes32 prev_block = b1;
 
         // Step 9: Compute b_i for i = 2 to ell
-        for (uint256 i = 2; i <= mem.ell; i++) {
+        for (uint256 i = 2; i <= ell; i++) {
             // strxor(b0, b_{i-1})
             bytes32 xor_input = b0 ^ prev_block;
 
@@ -225,28 +209,6 @@ library RFC9380 {
             // Update previous block
             prev_block = bi;
         }
-        mem.len_in_bytes = len_in_bytes;
-        mem.DST_prime = DST_prime;
-        mem.Z_pad = Z_pad;
-        mem.l_i_b_str = l_i_b_str;
-        mem.msg_prime = msg_prime;
-        mem.b0 = b0;
-        mem.b1 = b1;
-        }
-
-        // cheatcodes address
-        Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
-        console.log("run info:");
-        console.log("--------------------------------");
-        console.log("ell: ", mem.ell);
-        console.log("len_in_bytes: ", mem.len_in_bytes);
-        console.log(string.concat("DST_prime: ", vm.toString(mem.DST_prime)));
-        console.log(string.concat("Z_pad: ", vm.toString(mem.Z_pad)));
-        console.log(string.concat("l_i_b_str: ", vm.toString(mem.l_i_b_str)));
-        console.log(string.concat("msg_prime: ", vm.toString(mem.msg_prime)));
-        console.log(string.concat("b0: ", vm.toString(abi.encodePacked(mem.b0))));
-        console.log(string.concat("b1: ", vm.toString(abi.encodePacked(mem.b1))));
-        console.log("--------------------------------");
 
         // Step 11: Truncate to desired length
         assembly {
