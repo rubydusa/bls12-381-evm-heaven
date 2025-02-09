@@ -7,3 +7,6 @@
 [submodule "bls12381-lib/lib/openzeppelin-contracts"]
 	path = bls12381-lib/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "bls12381-lib/lib/eigenlayer-middleware"]
+	path = bls12381-lib/lib/eigenlayer-middleware
+	url = https://github.com/Layr-Labs/eigenlayer-middleware
