@@ -231,25 +231,6 @@ library RFC9380 {
         return o;
     }
 
-    /**
-     * @dev Slices a byte array from start to end.
-     * @param data The byte array to slice.
-     * @param start The starting index.
-     * @param length The number of bytes to slice.
-     * @return result The sliced byte array.
-     */
-    function slice(
-        bytes memory data,
-        uint256 start,
-        uint256 length
-    ) internal pure returns (bytes memory result) {
-        require(data.length >= start + length, "RFC9380: slice out of bounds");
-        result = new bytes(length);
-        for (uint256 i = 0; i < length; i++) {
-            result[i] = data[start + i];
-        }
-    }
-
     error EllTooLarge(uint256 ell);
     error LengthTooLarge(uint256 len_in_bytes);
     error DSTTooLong(uint256 dst_length);
