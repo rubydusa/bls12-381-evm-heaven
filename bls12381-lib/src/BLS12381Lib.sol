@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 // internal name
 interface _T {
     // pointers to bytes
@@ -141,6 +143,44 @@ library BLS12381Lib {
 library RFC9380 {
     uint256 constant B_IN_BYTES = 32; // SHA-256 output size in bytes
     uint256 constant S_IN_BYTES = 64; // SHA-256 block size in bytes
+
+    // L = ceil((ceil(log2(p)) + k) / 8), where k is the security parameter
+    // ceil(log2(p)) = 381, k = 128
+    // ceil((381 + 128) / 8) = 64
+    uint256 constant L = 64;
+    // BLS12-381 base field prime
+    bytes constant P = hex"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab";
+
+    // m = 1, extension field degree
+    /**
+     * @dev https://datatracker.ietf.org/doc/html/rfc9380#section-5.2
+     * @dev Hashes an arbitrary input to one or more field elements in the base field Fp of BLS12-381
+     * @param input The input bytes to hash
+     * @param dst The domain separation tag to prevent collisions between different hash usages
+     * @param count The number of field elements to generate
+     * @return result An array of count field elements in Fp
+     */
+    function hashToFp(
+        bytes memory input,
+        string memory dst, 
+        uint256 count
+    ) internal view returns (IBLSTypes.Fp[] memory result) {
+        uint16 length_in_bytes = uint16(count * L);
+        bytes memory uniform_bytes = expandMessageXMD(input, dst, length_in_bytes);
+        for (uint256 i = 0; i < count; i++) {
+            // m - 1 = 0, so no loop
+            // L * (j + i * m), m = 1, j = 0 => L * i
+            uint256 elm_offset =  L * i;
+            bytes memory tv = new bytes(L);
+            assembly {
+                mcopy(add(tv, 0x20), add(add(uniform_bytes, 0x20), elm_offset), L)
+            }
+            bytes memory tvp = Math.modExp(tv, hex"01", P);
+            _T.Fp tvp_fp;
+            assembly { tvp_fp := tvp }
+            result[i] = tvp_fp;
+        }
+    }
 
     /**
      * @dev Expands a message using the expand_message_xmd method as per RFC9380.
