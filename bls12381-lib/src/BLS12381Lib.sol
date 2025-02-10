@@ -153,7 +153,7 @@ library RFC9380 {
 
     // m = 1, extension field degree
     /**
-     * @dev https://datatracker.ietf.org/doc/html/rfc9380#section-5.2
+     * @dev https://datatracker.ietf.org/doc/html/rfc9380#name-hash_to_field-implementatio
      * @dev Hashes an arbitrary input to one or more field elements in the base field Fp of BLS12-381
      * @param input The input bytes to hash
      * @param dst The domain separation tag to prevent collisions between different hash usages
@@ -183,6 +183,7 @@ library RFC9380 {
     }
 
     /**
+     * @dev https://datatracker.ietf.org/doc/html/rfc9380#name-expand_message_xmd
      * @dev Expands a message using the expand_message_xmd method as per RFC9380.
      * @param message The input message as bytes.
      * @param dst The domain separation tag as a string.
