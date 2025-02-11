@@ -15,9 +15,44 @@ interface IRFC9380Types {
         string message;
         bytes[] elements;
     }
+
+    struct HashToG1TestVector {
+        string message;
+        bytes px;
+        bytes py;
+    }
 }
 
-abstract contract ExpandMessageXMDTestVectors is IRFC9380Types {
+abstract contract BaseTestVectors is IRFC9380Types {
+    function __fix(bytes memory element) internal pure returns (bytes memory) {
+        return __pad64(element);
+    }
+
+    function __fix(string[1] memory elements) internal pure returns (bytes[] memory) {
+        bytes[] memory elementsFixed = new bytes[](1);
+        elementsFixed[0] = __pad64(bytes(elements[0]));
+        return elementsFixed;
+    }
+
+    function __fix(string[2] memory elements) internal pure returns (bytes[] memory) {
+        bytes[] memory elementsFixed = new bytes[](2);
+        elementsFixed[0] = __pad64(bytes(elements[0]));
+        elementsFixed[1] = __pad64(bytes(elements[1]));
+        return elementsFixed;
+    }
+
+    function __pad64(bytes memory element) internal pure returns (bytes memory) {
+        uint256 length = element.length;
+        uint256 pad = 64 - length;
+        bytes memory padded = new bytes(64);
+        assembly {
+            mcopy(add(add(padded, 0x20), pad), add(element, 0x20), length)
+        }
+        return padded;
+    }
+}
+
+abstract contract ExpandMessageXMDTestVectors is BaseTestVectors {
     string internal constant XMD_DST = "QUUX-V01-CS02-with-expander-SHA256-128";
 
     function expandMessageXMDTestVectors() internal pure returns (ExpandMessageXMDTestVector[] memory vectors) {
@@ -78,7 +113,8 @@ abstract contract ExpandMessageXMDTestVectors is IRFC9380Types {
 /// @notice HashToField test vectors are not part of the RFC9380 spec, test vectors were generated specifically for SHA256 g1
 /// @dev https://github.com/rubydusa/draft-irtf-cfrg-hash-to-curve
 /// @dev https://github.com/rubydusa/draft-irtf-cfrg-hash-to-curve/blob/6c3a6a264123477a8bafd7d3289b9534fcd1f31b/poc/vectors/hash_to_field_expanderSHA256_128_fp.json
-abstract contract HashToFieldTestVectors is IRFC9380Types {
+abstract contract HashToFieldTestVectors is BaseTestVectors {
+    /// @dev using the same dst as for the expander test vectors
     string internal constant HASH_TO_FIELD_DST = "QUUX-V01-CS02-with-expander-SHA256-128";
 
     function hashToFieldTestVectors() internal pure returns (HashToFieldTestVector[] memory vectors) {
@@ -125,38 +161,54 @@ abstract contract HashToFieldTestVectors is IRFC9380Types {
             elements: __fix([ hex"0ea9d344b61d06a10b85c9f1382982884b1f33c780360e277c814168d8f546cfb329e042ec84c3701c41fafc8d015c1f", hex"1789449cae4af2241b65fcaf69ef95ba233cf0feabf1aeb27c4e315ead0c7cf69120f1cf05881a284171be12f25c9337"])
         });
     }
+}
 
-    // this is a hack around solidity's inability to generate inline dynamic arrays
-    function __fix(string[1] memory elements) private pure returns (bytes[] memory) {
-        bytes[] memory elementsFixed = new bytes[](1);
-        elementsFixed[0] = __pad64(bytes(elements[0]));
-        return elementsFixed;
-    }
-    function __fix(string[2] memory elements) private pure returns (bytes[] memory) {
-        bytes[] memory elementsFixed = new bytes[](2);
-        elementsFixed[0] = __pad64(bytes(elements[0]));
-        elementsFixed[1] = __pad64(bytes(elements[1]));
-        return elementsFixed;
-    }
+abstract contract HashToG1TestVectors is BaseTestVectors {
+    string internal constant HASH_TO_G1_DST = "QUUX-V01-CS02-with-BLS12381G1_XMD:SHA-256_SSWU_RO_";
 
-    function __pad64(bytes memory element) internal pure returns (bytes memory) {
-        uint256 pad = 64 - element.length;
-        bytes memory padded = new bytes(64);
-        assembly {
-            mcopy(add(add(padded, 0x20), pad), add(element, 0x20), 64)
-        }
-        return padded;
+    function hashToG1TestVectors() internal pure returns (HashToG1TestVector[] memory vectors) {
+        vectors = new HashToG1TestVector[](5);
+        vectors[0] = HashToG1TestVector({
+            message: "",
+            px: __fix(hex"052926add2207b76ca4fa57a8734416c8dc95e24501772c814278700eed6d1e4e8cf62d9c09db0fac349612b759e79a1"),
+            py: __fix(hex"08ba738453bfed09cb546dbb0783dbb3a5f1f566ed67bb6be0e8c67e2e81a4cc68ee29813bb7994998f3eae0c9c6a265")
+        });
+        vectors[1] = HashToG1TestVector({
+            message: "abc",
+            px: __fix(hex"03567bc5ef9c690c2ab2ecdf6a96ef1c139cc0b2f284dca0a9a7943388a49a3aee664ba5379a7655d3c68900be2f6903"),
+            py: __fix(hex"0b9c15f3fe6e5cf4211f346271d7b01c8f3b28be689c8429c85b67af215533311f0b8dfaaa154fa6b88176c229f2885d")
+        });
+        vectors[2] = HashToG1TestVector({
+            message: "abcdef0123456789",
+            px: __fix(hex"11e0b079dea29a68f0383ee94fed1b940995272407e3bb916bbf268c263ddd57a6a27200a784cbc248e84f357ce82d98"),
+            py: __fix(hex"03a87ae2caf14e8ee52e51fa2ed8eefe80f02457004ba4d486d6aa1f517c0889501dc7413753f9599b099ebcbbd2d709")
+        });
+        vectors[3] = HashToG1TestVector({
+            message: "q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+            px: __fix(hex"15f68eaa693b95ccb85215dc65fa81038d69629f70aeee0d0f677cf22285e7bf58d7cb86eefe8f2e9bc3f8cb84fac488"),
+            py: __fix(hex"1807a1d50c29f430b8cafc4f8638dfeeadf51211e1602a5f184443076715f91bb90a48ba1e370edce6ae1062f5e6dd38")
+        });
+        vectors[4] = HashToG1TestVector({
+            message: "a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            px: __fix(hex"082aabae8b7dedb0e78aeb619ad3bfd9277a2f77ba7fad20ef6aabdc6c31d19ba5a6d12283553294c1825c4b3ca2dcfe"),
+            py: __fix(hex"05b84ae5a942248eea39e1d91030458c40153f3b654ab7872d779ad1e942856a20c438e8d99bc8abfbf74729ce1f7ac8")
+        });
     }
 }
 
-contract RFC9380Test is Test, ExpandMessageXMDTestVectors, HashToFieldTestVectors, IBLSTypes {
+contract RFC9380Test is Test, ExpandMessageXMDTestVectors, HashToFieldTestVectors, HashToG1TestVectors, IBLSTypes {
     using BLS12381Lib for Fp;
+    using BLS12381Lib for G1Point;
 
-    function test_hash_to_curve_g1() public pure {
-        // TODO: implement
-        // https://www.rfc-editor.org/rfc/rfc9380.html#name-bls12381g1_xmdsha-256_sswu_
+    function test_hash_to_curve_g1() public view {
+        HashToG1TestVector[] memory vectors = hashToG1TestVectors();
+        for (uint256 i = 0; i < vectors.length; i++) {
+            HashToG1TestVector memory vector = vectors[i];
+            G1Point result = RFC9380.hashToG1(bytes(vector.message));
+            assertEq(result.x().mem(), vector.px);
+            assertEq(result.y().mem(), vector.py);
+        }
     }
-
 
     function test_hash_to_field() public view {
         HashToFieldTestVector[] memory vectors = hashToFieldTestVectors();

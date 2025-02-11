@@ -79,6 +79,31 @@ library BLS12381Lib {
     }
 
     /**
+     * @dev Adds two G1 curve points using the G1 addition precompile
+     * @param point1 The first G1 point to add
+     * @param point2 The second G1 point to add
+     * @return result The resulting G1 point after addition
+     */
+    function addG1(_T.G1Point point1, _T.G1Point point2) internal view returns (_T.G1Point result) {
+        bytes memory input = bytes.concat(point1.mem(), point2.mem());
+        (bool success, bytes memory resultBytes) = G1_ADD_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
+    /**
+     * @dev Maps a field element in Fp to a point on the G1 curve using the map-to-curve precompile
+     * @param element The Fp field element to map to G1
+     * @return result The resulting G1 point after mapping
+     */
+    function mapFpToG1(IBLSTypes.Fp element) internal view returns (_T.G1Point result) {
+        bytes memory input = element.mem();
+        (bool success, bytes memory resultBytes) = MAP_FP_TO_G1_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
+    /**
      * @dev Multiplies the G2 generator point by a scalar using the G2 multi-scalar multiplication precompile
      * @param scalar The scalar to multiply the generator point by
      * @return result The resulting G2 point after scalar multiplication
@@ -101,6 +126,24 @@ library BLS12381Lib {
         (bool success, bytes memory resultBytes) = G2_MSM_PRECOMPILE.staticcall(input);
         require(success, PrecompileError(resultBytes));
         assembly { result := resultBytes }
+    }
+
+    function x(_T.G1Point point) internal pure returns (_T.Fp result) {
+        bytes memory resultBytes = new bytes(64);
+        bytes memory pointBytes = point.mem();
+        assembly {
+            mcopy(add(resultBytes, 0x20), add(pointBytes, 0x20), 0x40)
+            result := resultBytes
+        }
+    }
+
+    function y(_T.G1Point point) internal pure returns (_T.Fp result) {
+        bytes memory resultBytes = new bytes(64);
+        bytes memory pointBytes = point.mem();
+        assembly {
+            mcopy(add(resultBytes, 0x20), add(pointBytes, 0x60), 0x40)
+            result := resultBytes
+        }
     }
 
     /**
@@ -150,7 +193,21 @@ library RFC9380 {
     uint256 constant L = 64;
     // BLS12-381 base field prime
     bytes constant P = hex"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab";
+    string constant HASH_TO_G1_DST = "QUUX-V01-CS02-with-BLS12381G1_XMD:SHA-256_SSWU_RO_";
 
+    /**
+     * @dev https://datatracker.ietf.org/doc/html/rfc9380#section-3-4.2.1
+     * @dev Hashes an arbitrary input to a point on the G1 curve using the hash-to-curve method from RFC9380
+     * @dev This implements the hash_to_curve operation for BLS12-381 G1 as specified in RFC9380 section 8.8.1
+     * @param input The input bytes to hash to a curve point
+     * @return result A point on the G1 curve derived deterministically from the input
+     */
+    function hashToG1(bytes memory input) internal view returns (_T.G1Point result) {
+        _T.Fp[] memory u = hashToFp(input, HASH_TO_G1_DST, 2);
+        _T.G1Point q0 = BLS12381Lib.mapFpToG1(u[0]);
+        _T.G1Point q1 = BLS12381Lib.mapFpToG1(u[1]);
+        result = BLS12381Lib.addG1(q0, q1);
+    }
     // m = 1, extension field degree
     /**
      * @dev https://datatracker.ietf.org/doc/html/rfc9380#name-hash_to_field-implementatio
