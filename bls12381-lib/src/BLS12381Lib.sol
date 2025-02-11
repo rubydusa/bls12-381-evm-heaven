@@ -165,6 +165,7 @@ library RFC9380 {
         string memory dst, 
         uint256 count
     ) internal view returns (IBLSTypes.Fp[] memory result) {
+        result = new IBLSTypes.Fp[](count);
         uint16 length_in_bytes = uint16(count * L);
         bytes memory uniform_bytes = expandMessageXMD(input, dst, length_in_bytes);
         for (uint256 i = 0; i < count; i++) {
