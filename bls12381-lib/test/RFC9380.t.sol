@@ -129,14 +129,23 @@ abstract contract HashToFieldTestVectors is IRFC9380Types {
     // this is a hack around solidity's inability to generate inline dynamic arrays
     function __fix(string[1] memory elements) private pure returns (bytes[] memory) {
         bytes[] memory elementsFixed = new bytes[](1);
-        elementsFixed[0] = bytes(elements[0]);
+        elementsFixed[0] = __pad64(bytes(elements[0]));
         return elementsFixed;
     }
     function __fix(string[2] memory elements) private pure returns (bytes[] memory) {
         bytes[] memory elementsFixed = new bytes[](2);
-        elementsFixed[0] = bytes(elements[0]);
-        elementsFixed[1] = bytes(elements[1]);
+        elementsFixed[0] = __pad64(bytes(elements[0]));
+        elementsFixed[1] = __pad64(bytes(elements[1]));
         return elementsFixed;
+    }
+
+    function __pad64(bytes memory element) internal pure returns (bytes memory) {
+        uint256 pad = 64 - element.length;
+        bytes memory padded = new bytes(64);
+        assembly {
+            mcopy(add(add(padded, 0x20), pad), add(element, 0x20), 64)
+        }
+        return padded;
     }
 }
 

@@ -172,14 +172,20 @@ library RFC9380 {
             // m - 1 = 0, so no loop
             // L * (j + i * m), m = 1, j = 0 => L * i
             uint256 elm_offset =  L * i;
-            bytes memory tv = new bytes(L);
+            bytes memory slice = new bytes(L);
             assembly {
-                mcopy(add(tv, 0x20), add(add(uniform_bytes, 0x20), elm_offset), L)
+                mcopy(add(slice, 0x20), add(add(uniform_bytes, 0x20), elm_offset), L)
             }
-            bytes memory tvp = Math.modExp(tv, hex"01", P);
-            _T.Fp tvp_fp;
-            assembly { tvp_fp := tvp }
-            result[i] = tvp_fp;
+            // We need to sanitize the Fp elements to be represented with 64 byte arrays
+            bytes memory slice_mod_p = Math.modExp(slice, hex"01", P);
+            uint256 pad = L - slice_mod_p.length;
+            bytes memory fp_bytes = new bytes(L);
+            _T.Fp fp;
+            assembly {
+                mcopy(add(add(fp_bytes, 0x20), pad), add(slice_mod_p, 0x20), L)
+                fp := fp_bytes
+            }
+            result[i] = fp;
         }
     }
 
