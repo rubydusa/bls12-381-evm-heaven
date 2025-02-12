@@ -11,6 +11,14 @@ interface _T {
     type Fp2 is uint256;
     type G1Point is uint256;
     type G2Point is uint256;
+
+    struct Signature {
+        // G1 point 128 bytes. can't use type alias since this type is used in calldata
+        bytes pk;
+        // G2 point 256 bytes. can't use type alias since this type is used in calldata
+        bytes signature;
+        bytes message;
+    }
 }
 
 // external name
@@ -31,8 +39,9 @@ library BLS12381Lib {
     address constant MAP_FP_TO_G1_PRECOMPILE = address(0x10);
     address constant MAP_FP2_TO_G2_PRECOMPILE = address(0x11);
 
-    bytes constant G1_GENERATOR = hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb0000000000000000000000000000000008b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1";
-    bytes constant G2_GENERATOR = hex"00000000000000000000000000000000024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb80000000000000000000000000000000013e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e000000000000000000000000000000000ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801000000000000000000000000000000000606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be";
+    bytes constant G1_GENERATOR     = hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb0000000000000000000000000000000008b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1";
+    bytes constant G2_GENERATOR     = hex"00000000000000000000000000000000024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb80000000000000000000000000000000013e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e000000000000000000000000000000000ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801000000000000000000000000000000000606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be";
+    bytes constant G2_GENERATOR_NEG = hex"00000000000000000000000000000000024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb80000000000000000000000000000000013e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e000000000000000000000000000000000d1b3cc2c7027888be51d9ef691d77bcb679afda66c73f17f9ee3837a55024f78c71363275a75d75d86bab79f74782aa0000000000000000000000000000000013fa4d4a0ad8b1ce186ed5061789213d993923066dddaf1040bc3ff59f825c78df74f2d75467e25e0f55f8a00fa030ed";
 
     /**
      * @dev Returns the generator point of the G1 group on BLS12-381
@@ -50,6 +59,21 @@ library BLS12381Lib {
     function g2Generator() internal pure returns (_T.G2Point result) {
         bytes memory _g2Generator = G2_GENERATOR;
         assembly { result := _g2Generator } 
+    }
+
+    /**
+     * @dev Verifies a BLS12-381 signature
+     * @dev https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-04#section-3.1
+     * @param signature The signature to verify (pk, signature, message)
+     * @return result True if the signature is valid, false otherwise
+     */
+    function verifySignature(_T.Signature memory signature) internal view returns (bool) {
+        // no need to validate signature point because pairing precomile will fail if it's not a valid point
+        _T.G1Point messagePointHash = RFC9380.hashToG1(signature.message);
+        bytes memory input = bytes.concat(messagePointHash.mem(), signature.pk, signature.signature, G2_GENERATOR_NEG);
+        (bool success, bytes memory resultBytes) = PAIRING_CHECK_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        return resultBytes[31] == 0x01;
     }
 
     /**
@@ -338,4 +362,9 @@ library RFC9380 {
     error EllTooLarge(uint256 ell);
     error LengthTooLarge(uint256 len_in_bytes);
     error DSTTooLong(uint256 dst_length);
+}
+
+/// @dev https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-04
+library IRTF_BLS_04 {
+
 }
