@@ -10,3 +10,6 @@
 [submodule "bls12381-lib/lib/eigenlayer-middleware"]
 	path = bls12381-lib/lib/eigenlayer-middleware
 	url = https://github.com/Layr-Labs/eigenlayer-middleware
+[submodule "validate-beacon-sig-on-chain-poc/lib/forge-std"]
+	path = validate-beacon-sig-on-chain-poc/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
