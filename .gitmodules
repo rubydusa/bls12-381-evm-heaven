@@ -13,3 +13,6 @@
 [submodule "validate-beacon-sig-on-chain-poc/lib/forge-std"]
 	path = validate-beacon-sig-on-chain-poc/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "validate-beacon-sig-on-chain-poc/dependencies/consensus-specs"]
+	path = validate-beacon-sig-on-chain-poc/dependencies/consensus-specs
+	url = https://github.com/ethereum/consensus-specs
