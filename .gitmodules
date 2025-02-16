@@ -16,3 +16,6 @@
 [submodule "validate-beacon-sig-on-chain-poc/dependencies/consensus-specs"]
 	path = validate-beacon-sig-on-chain-poc/dependencies/consensus-specs
 	url = https://github.com/ethereum/consensus-specs
+[submodule "bls12381-groth16/lib/forge-std"]
+	path = bls12381-groth16/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
