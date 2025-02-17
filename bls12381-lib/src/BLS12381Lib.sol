@@ -363,8 +363,3 @@ library RFC9380 {
     error LengthTooLarge(uint256 len_in_bytes);
     error DSTTooLong(uint256 dst_length);
 }
-
-/// @dev https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-04
-library IRTF_BLS_04 {
-
-}
