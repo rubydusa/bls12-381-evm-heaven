@@ -69,6 +69,8 @@ library BLS12381Lib {
      * @return result True if the signature is valid, false otherwise
      */
     function verifySignatureG1(_T.Signature memory signature) internal view returns (bool) {
+        require(signature.pk.length == 256, InvalidPKLength(signature.pk.length));
+        require(signature.signature.length == 128, InvalidSignatureLength(signature.signature.length));
         // no need to validate signature point because pairing precomile will fail if it's not a valid point
         _T.G1Point messagePointHash = RFC9380.hashToG1(signature.message);
         bytes memory input = bytes.concat(messagePointHash.mem(), signature.pk, signature.signature, G2_GENERATOR_NEG);
@@ -84,6 +86,8 @@ library BLS12381Lib {
      * @return result True if the signature is valid, false otherwise
      */
     function verifySignatureG2(_T.Signature memory signature) internal view returns (bool) {
+        require(signature.pk.length == 128, InvalidPKLength(signature.pk.length));
+        require(signature.signature.length == 256, InvalidSignatureLength(signature.signature.length));
         // no need to validate signature point because pairing precomile will fail if it's not a valid point
         _T.G2Point messagePointHash = RFC9380.hashToG2(signature.message);
         bytes memory input = bytes.concat(signature.pk, messagePointHash.mem(), G1_GENERATOR_NEG, signature.signature);
@@ -257,11 +261,24 @@ library BLS12381Lib {
      */
     function mem(_T.G2Point point) internal pure returns (bytes memory result) { assembly { result := point } }
 
+    // TODO: consider moving errors to an interface so it can be imported by contracts
     /**
      * @dev Error thrown when a precompile call fails unexpectedly
      * @param data The error data returned by the precompile
      */
     error PrecompileError(bytes data);
+
+    /**
+     * @dev Error thrown when a public key has an invalid length
+     * @param length The invalid length that was provided
+     */
+    error InvalidPKLength(uint256 length);
+
+    /**
+     * @dev Error thrown when a signature has an invalid length
+     * @param length The invalid length that was provided
+     */
+    error InvalidSignatureLength(uint256 length);
 }
 
 // This library implements hash-to-curve primitives as specified in RFC9380

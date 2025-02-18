@@ -116,4 +116,41 @@ contract BLS12381LibTest is Test, IBLSTypes {
         }
         assertEq(BLS12381Lib.verifySignatureG1(signature), false);
     }
+
+    function test_verifySignatureG2_positive(bytes memory message, uint256 sk) public view {
+        vm.assume(sk > 0);
+        G2Point q = RFC9380.hashToG2(message);
+        G2Point r = q.mulG2(sk);
+        G1Point pk = BLS12381Lib.g1Generator().mulG1(sk);
+        Signature memory signature = Signature({
+            pk: pk.mem(),
+            signature: r.mem(),
+            message: message
+        });
+        assertEq(BLS12381Lib.verifySignatureG2(signature), true);
+    }
+
+    function test_verifySignatureG2_negative(bytes memory message, uint256 sk, uint256 mutation) public view {
+        vm.assume(sk > 0);
+        G2Point q = RFC9380.hashToG2(message);
+        G2Point r = q.mulG2(sk);
+        G1Point pk = BLS12381Lib.g1Generator().mulG1(sk);
+        Signature memory signature = Signature({
+            pk: pk.mem(),
+            signature: r.mem(),
+            message: message
+        });
+        uint256 mutationType = mutation % 3;
+        if (mutationType == 0) {
+            // change pk
+            signature.pk = BLS12381Lib.g1Generator().mulG1(mutation).mem();
+        } else if (mutationType == 1) {
+            // change signature
+            signature.signature = BLS12381Lib.g2Generator().mulG2(mutation).mem();
+        } else {
+            // change message
+            signature.message = bytes.concat(signature.message, bytes1(0x01));
+        }
+        assertEq(BLS12381Lib.verifySignatureG2(signature), false);
+    }
 }
