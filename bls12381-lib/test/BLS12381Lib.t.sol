@@ -79,7 +79,8 @@ contract BLS12381LibTest is Test, IBLSTypes {
     }
 
     // happy path
-    function test_verifySignature_positive(bytes memory message, uint256 sk) public view {
+    function test_verifySignatureG1_positive(bytes memory message, uint256 sk) public view {
+        vm.assume(sk > 0);
         G1Point q = RFC9380.hashToG1(message);
         G1Point r = q.mulG1(sk);
         G2Point _pk = BLS12381Lib.g2Generator().mulG2(sk);
@@ -88,11 +89,12 @@ contract BLS12381LibTest is Test, IBLSTypes {
             signature: r.mem(),
             message: message
         });
-        assertEq(BLS12381Lib.verifySignature(signature), true);
+        assertEq(BLS12381Lib.verifySignatureG1(signature), true);
     }
 
     // mutation
-    function test_verifySignature_negative(bytes memory message, uint256 sk, uint256 mutation) public view {
+    function test_verifySignatureG1_negative(bytes memory message, uint256 sk, uint256 mutation) public view {
+        vm.assume(sk > 0);
         G1Point q = RFC9380.hashToG1(message);
         G1Point r = q.mulG1(sk);
         G2Point _pk = BLS12381Lib.g2Generator().mulG2(sk);
@@ -102,16 +104,16 @@ contract BLS12381LibTest is Test, IBLSTypes {
             message: message
         });
         uint256 mutationType = mutation % 3;
-        if (mutationType == 1) {
+        if (mutationType == 0) {
             // change pk
             signature.pk = BLS12381Lib.g2Generator().mulG2(mutation).mem();
-        } else if (mutationType == 2) {
+        } else if (mutationType == 1) {
             // change signature
             signature.signature = BLS12381Lib.g1Generator().mulG1(mutation).mem();
         } else {
             // change message
             signature.message = bytes.concat(signature.message, bytes1(0x01));
         }
-        assertEq(BLS12381Lib.verifySignature(signature), false);
+        assertEq(BLS12381Lib.verifySignatureG1(signature), false);
     }
 }

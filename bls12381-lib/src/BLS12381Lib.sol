@@ -13,9 +13,9 @@ interface _T {
     type G2Point is uint256;
 
     struct Signature {
-        // G1 point 128 bytes. can't use type alias since this type is used in calldata
+        // if short signature, pk is 256 bytes (G2), otherwise 128 bytes (G1)
         bytes pk;
-        // G2 point 256 bytes. can't use type alias since this type is used in calldata
+        // if short signature, signature is 128 bytes (G1), otherwise 256 bytes (G2)
         bytes signature;
         bytes message;
     }
@@ -40,6 +40,7 @@ library BLS12381Lib {
     address constant MAP_FP2_TO_G2_PRECOMPILE = address(0x11);
 
     bytes constant G1_GENERATOR     = hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb0000000000000000000000000000000008b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1";
+    bytes constant G1_GENERATOR_NEG = hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb00000000000000000000000000000000114d1d6855d545a8aa7d76c8cf2e21f267816aef1db507c96655b9d5caac42364e6f38ba0ecb751bad54dcd6b939c2ca";
     bytes constant G2_GENERATOR     = hex"00000000000000000000000000000000024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb80000000000000000000000000000000013e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e000000000000000000000000000000000ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801000000000000000000000000000000000606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be";
     bytes constant G2_GENERATOR_NEG = hex"00000000000000000000000000000000024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb80000000000000000000000000000000013e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e000000000000000000000000000000000d1b3cc2c7027888be51d9ef691d77bcb679afda66c73f17f9ee3837a55024f78c71363275a75d75d86bab79f74782aa0000000000000000000000000000000013fa4d4a0ad8b1ce186ed5061789213d993923066dddaf1040bc3ff59f825c78df74f2d75467e25e0f55f8a00fa030ed";
 
@@ -62,15 +63,30 @@ library BLS12381Lib {
     }
 
     /**
-     * @dev Verifies a BLS12-381 signature
+     * @dev Verifies a G1 BLS12-381 signature
      * @dev https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-04#section-3.1
      * @param signature The signature to verify (pk, signature, message)
      * @return result True if the signature is valid, false otherwise
      */
-    function verifySignature(_T.Signature memory signature) internal view returns (bool) {
+    function verifySignatureG1(_T.Signature memory signature) internal view returns (bool) {
         // no need to validate signature point because pairing precomile will fail if it's not a valid point
         _T.G1Point messagePointHash = RFC9380.hashToG1(signature.message);
         bytes memory input = bytes.concat(messagePointHash.mem(), signature.pk, signature.signature, G2_GENERATOR_NEG);
+        (bool success, bytes memory resultBytes) = PAIRING_CHECK_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        return resultBytes[31] == 0x01;
+    }
+
+    /**
+     * @dev Verifies a G2 BLS12-381 signature
+     * @dev https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-04#section-3.1
+     * @param signature The signature to verify (pk, signature, message)
+     * @return result True if the signature is valid, false otherwise
+     */
+    function verifySignatureG2(_T.Signature memory signature) internal view returns (bool) {
+        // no need to validate signature point because pairing precomile will fail if it's not a valid point
+        _T.G2Point messagePointHash = RFC9380.hashToG2(signature.message);
+        bytes memory input = bytes.concat(signature.pk, messagePointHash.mem(), G1_GENERATOR_NEG, signature.signature);
         (bool success, bytes memory resultBytes) = PAIRING_CHECK_PRECOMPILE.staticcall(input);
         require(success, PrecompileError(resultBytes));
         return resultBytes[31] == 0x01;
@@ -115,6 +131,19 @@ library BLS12381Lib {
     }
 
     /**
+     * @dev Adds two G2 curve points using the G2 addition precompile
+     * @param point1 The first G2 point to add
+     * @param point2 The second G2 point to add
+     * @return result The resulting G2 point after addition
+     */
+    function addG2(_T.G2Point point1, _T.G2Point point2) internal view returns (_T.G2Point result) {
+        bytes memory input = bytes.concat(point1.mem(), point2.mem());
+        (bool success, bytes memory resultBytes) = G2_ADD_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
+    /**
      * @dev Maps a field element in Fp to a point on the G1 curve using the map-to-curve precompile
      * @param element The Fp field element to map to G1
      * @return result The resulting G1 point after mapping
@@ -122,6 +151,18 @@ library BLS12381Lib {
     function mapFpToG1(IBLSTypes.Fp element) internal view returns (_T.G1Point result) {
         bytes memory input = element.mem();
         (bool success, bytes memory resultBytes) = MAP_FP_TO_G1_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
+    /**
+     * @dev Maps a field element in Fp2 to a point on the G2 curve using the map-to-curve precompile
+     * @param element The Fp2 field element to map to G2
+     * @return result The resulting G2 point after mapping
+     */
+    function mapFp2ToG2(IBLSTypes.Fp2 element) internal view returns (_T.G2Point result) {
+        bytes memory input = element.mem();
+        (bool success, bytes memory resultBytes) = MAP_FP2_TO_G2_PRECOMPILE.staticcall(input);
         require(success, PrecompileError(resultBytes));
         assembly { result := resultBytes }
     }
@@ -160,6 +201,15 @@ library BLS12381Lib {
         }
     }
 
+    function x(_T.G2Point point) internal pure returns (_T.Fp2 result) {
+        bytes memory resultBytes = new bytes(128);
+        bytes memory pointBytes = point.mem();
+        assembly {
+            mcopy(add(resultBytes, 0x20), add(pointBytes, 0x20), 0x80)
+            result := resultBytes
+        }
+    }
+
     function y(_T.G1Point point) internal pure returns (_T.Fp result) {
         bytes memory resultBytes = new bytes(64);
         bytes memory pointBytes = point.mem();
@@ -168,6 +218,16 @@ library BLS12381Lib {
             result := resultBytes
         }
     }
+
+    function y(_T.G2Point point) internal pure returns (_T.Fp2 result) {
+        bytes memory resultBytes = new bytes(128);
+        bytes memory pointBytes = point.mem();
+        assembly {
+            mcopy(add(resultBytes, 0x20), add(pointBytes, 0xA0), 0x80)
+            result := resultBytes
+        }
+    }
+    
 
     /**
      * @dev Converts an Fp field element to its byte representation
@@ -217,6 +277,7 @@ library RFC9380 {
     // BLS12-381 base field prime
     bytes constant P = hex"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab";
     string constant HASH_TO_G1_DST = "QUUX-V01-CS02-with-BLS12381G1_XMD:SHA-256_SSWU_RO_";
+    string constant HASH_TO_G2_DST = "QUUX-V01-CS02-with-BLS12381G2_XMD:SHA-256_SSWU_RO_";
 
     /**
      * @dev https://datatracker.ietf.org/doc/html/rfc9380#section-3-4.2.1
@@ -231,6 +292,14 @@ library RFC9380 {
         _T.G1Point q1 = BLS12381Lib.mapFpToG1(u[1]);
         result = BLS12381Lib.addG1(q0, q1);
     }
+
+    function hashToG2(bytes memory input) internal view returns (_T.G2Point result) {
+        _T.Fp2[] memory u = hashToFp2(input, HASH_TO_G2_DST, 2);
+        _T.G2Point q0 = BLS12381Lib.mapFp2ToG2(u[0]);
+        _T.G2Point q1 = BLS12381Lib.mapFp2ToG2(u[1]);
+        result = BLS12381Lib.addG2(q0, q1);
+    }
+
     // m = 1, extension field degree
     /**
      * @dev https://datatracker.ietf.org/doc/html/rfc9380#name-hash_to_field-implementatio
@@ -266,6 +335,43 @@ library RFC9380 {
                 fp := fp_bytes
             }
             result[i] = fp;
+        }
+    }
+
+    // m = 2, extension field degree
+    function hashToFp2(bytes memory input, string memory dst, uint256 count) internal view returns (IBLSTypes.Fp2[] memory result) {
+        result = new IBLSTypes.Fp2[](count);
+        uint16 length_in_bytes = uint16(count * L * 2);
+        bytes memory uniform_bytes = expandMessageXMD(input, dst, length_in_bytes);
+        for (uint256 i = 0; i < count; i++) {
+            // m - 1 = 1, so 2 iterations
+            // L * (j + i * m), m = 2, j = 0 => L * 2i
+            // L * (j + i * m), m = 2, j = 1 => L * (2i + 1)
+            bytes memory result_i_bytes = new bytes(L * 2);
+            for (uint256 j = 0; j < 2; j++) {
+                uint256 elm_offset =  L * (j + i * 2);
+                bytes memory slice = new bytes(L);
+                assembly {
+                    mcopy(add(slice, 0x20), add(add(uniform_bytes, 0x20), elm_offset), L)
+                }
+                // The mod operation removes trailing zeros, so we need to pad the results
+                // such that in the end we have a 128 byte array for each Fp2 element
+                bytes memory slice_mod_p = Math.modExp(slice, hex"01", P);
+                uint256 pad = L - slice_mod_p.length;
+                bytes memory slice_sanitized = new bytes(L);
+                // NOTE: this can be optimized to a single copy
+                assembly {
+                    // copy slice_mod_p to slice_sanitized
+                    mcopy(add(add(slice_sanitized, 0x20), pad), add(slice_mod_p, 0x20), L)
+                    // copy slice_sanitized to result_i_bytes[64j:64(j+1)]
+                    mcopy(add(add(result_i_bytes, 0x20), mul(j, L)), add(slice_sanitized, 0x20), L)
+                }
+            }
+            _T.Fp2 fp2;
+            assembly {
+                fp2 := result_i_bytes
+            }
+            result[i] = fp2;
         }
     }
 
