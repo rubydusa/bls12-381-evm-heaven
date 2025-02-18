@@ -109,6 +109,18 @@ library BLS12381Lib {
     }
 
     /**
+     * @dev Multiplies the G2 generator point by a scalar using the G2 multi-scalar multiplication precompile
+     * @param scalar The scalar to multiply the generator point by
+     * @return result The resulting G2 point after scalar multiplication
+     */
+    function mulBaseG2(uint256 scalar) internal view returns (_T.G2Point result) {
+        bytes memory input = bytes.concat(G2_GENERATOR, abi.encode(scalar));
+        (bool success, bytes memory resultBytes) = G2_MSM_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
+    /**
      * @dev Multiplies a G1 curve point by a scalar using the G1 multi-scalar multiplication precompile
      * @param point The G1 point to multiply
      * @param scalar The scalar to multiply the point by
@@ -117,6 +129,19 @@ library BLS12381Lib {
     function mulG1(_T.G1Point point, uint256 scalar) internal view returns (_T.G1Point result) {
         bytes memory input = bytes.concat(point.mem(), abi.encode(scalar));
         (bool success, bytes memory resultBytes) = G1_MSM_PRECOMPILE.staticcall(input);
+        require(success, PrecompileError(resultBytes));
+        assembly { result := resultBytes }
+    }
+
+    /**
+     * @dev Multiplies a G2 curve point by a scalar using the G2 multi-scalar multiplication precompile
+     * @param point The G2 point to multiply
+     * @param scalar The scalar to multiply the point by
+     * @return result The resulting G2 point after scalar multiplication
+     */
+    function mulG2(_T.G2Point point, uint256 scalar) internal view returns (_T.G2Point result) {
+        bytes memory input = bytes.concat(point.mem(), abi.encode(scalar));
+        (bool success, bytes memory resultBytes) = G2_MSM_PRECOMPILE.staticcall(input);
         require(success, PrecompileError(resultBytes));
         assembly { result := resultBytes }
     }
@@ -167,31 +192,6 @@ library BLS12381Lib {
     function mapFp2ToG2(IBLSTypes.Fp2 element) internal view returns (_T.G2Point result) {
         bytes memory input = element.mem();
         (bool success, bytes memory resultBytes) = MAP_FP2_TO_G2_PRECOMPILE.staticcall(input);
-        require(success, PrecompileError(resultBytes));
-        assembly { result := resultBytes }
-    }
-
-    /**
-     * @dev Multiplies the G2 generator point by a scalar using the G2 multi-scalar multiplication precompile
-     * @param scalar The scalar to multiply the generator point by
-     * @return result The resulting G2 point after scalar multiplication
-     */
-    function mulBaseG2(uint256 scalar) internal view returns (_T.G2Point result) {
-        bytes memory input = bytes.concat(G2_GENERATOR, abi.encode(scalar));
-        (bool success, bytes memory resultBytes) = G2_MSM_PRECOMPILE.staticcall(input);
-        require(success, PrecompileError(resultBytes));
-        assembly { result := resultBytes }
-    }
-
-    /**
-     * @dev Multiplies a G2 curve point by a scalar using the G2 multi-scalar multiplication precompile
-     * @param point The G2 point to multiply
-     * @param scalar The scalar to multiply the point by
-     * @return result The resulting G2 point after scalar multiplication
-     */
-    function mulG2(_T.G2Point point, uint256 scalar) internal view returns (_T.G2Point result) {
-        bytes memory input = bytes.concat(point.mem(), abi.encode(scalar));
-        (bool success, bytes memory resultBytes) = G2_MSM_PRECOMPILE.staticcall(input);
         require(success, PrecompileError(resultBytes));
         assembly { result := resultBytes }
     }
