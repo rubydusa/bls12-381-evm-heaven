@@ -1,7 +1,12 @@
-## Pectra Playground
+## BLS12-381 Lib
 
-This is a playground for testing the Pectra BLS12-381 precompile.
+Main items:
+- library BLS12831
+- library RFC9380
 
-### BLS12381Lib.sol
+### BLS12381
+- basic usage of the BLS12-381 EVM precompiles introduced in [EIP-2537](https://eips.ethereum.org/EIPS/eip-2537).
+- signature verification as defined in [draft-irtf-cfrg-bls-signature-04](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-04).
 
-This library provides a simple interface for performing BLS12-381 operations using the precompile.
+### RFC9380
+- `expand_message_xmd` and `hash_to_curve` methods from [RFC9380](https://datatracker.ietf.org/doc/html/rfc9380).
