@@ -43,14 +43,21 @@ ic = [process_fp(x[0]) + process_fp(x[1]) for x in vk['IC']]
 pi_a_neg_y = str(fp_order - int(proof['pi_a'][1]))
 pi_a = process_fp(proof['pi_a'][0]) + process_fp(pi_a_neg_y)
 pi_b = [process_fp(proof['pi_b'][0][0]) + process_fp(proof['pi_b'][0][1]), process_fp(proof['pi_b'][1][0]) + process_fp(proof['pi_b'][1][1])]
-pi_c = process_fp(proof['pi_a'][0]) + process_fp(pi_a_neg_y)
+pi_c = process_fp(proof['pi_c'][0]) + process_fp(proof['pi_c'][1])
 pub_signals = [process_scalar("1")] + [process_scalar(x) for x in public]
+
+print(len(''.join([x[2:] for x in pi_a])))
+print(len(''.join([x[2:] for x in pi_b[0]])))
+print(len(''.join([x[2:] for x in pi_b[1]])))
+print(len(''.join([x[2:] for x in pi_c])))
+print(len(''.join([x[2:] for x in pub_signals])))
 
 calldata = ''.join([x[2:] for x in pi_a]) + \
       ''.join([x[2:] for x in pi_b[0]]) + \
       ''.join([x[2:] for x in pi_b[1]]) + \
       ''.join([x[2:] for x in pi_c]) + \
       ''.join([x[2:] for x in pub_signals])
+print(len(calldata))
 
 result = {
     'alpha': alpha,

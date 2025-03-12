@@ -35,19 +35,19 @@ contract Groth16Verifier {
     uint256 constant q = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001;
 
     // Verification Key data
-    bytes32 constant alphax_0  = 0x000000000000000000000000000000000f4ee38de586fb5ba0e86131419b393a;
-    bytes32 constant alphax_1  = 0xe3da9c9b1764c687d487237c3bcaea52d483e9f5740a9741d0e6eacd7359468c;
-    bytes32 constant alphay_0  = 0x0000000000000000000000000000000007d1855f92766e2416ced2729f63ae3a;
-    bytes32 constant alphay_1  = 0x09ae2d3c3b1a41629bb4ca23148bf9d5ce7eecbc009671b7b84849dc09469860;
+    bytes32 constant alphax_0  = 0x000000000000000000000000000000000f58323a93c517afe0dbb93b5b3db309;
+    bytes32 constant alphax_1  = 0xb9b641b7056fd14f87987293fe2b7c7671aed23638bfacfd41bd49d190a068ef;
+    bytes32 constant alphay_0  = 0x0000000000000000000000000000000003f84652dc9a9cccf9abe2a577b8884d;
+    bytes32 constant alphay_1  = 0x2b0bab9cbe075633630f0ff8f763e270ac32479b0967af026e89e71e25e9a882;
     
-    bytes32 constant betax1_0  = 0x00000000000000000000000000000000034af43e7f4888d49c2c72fa9569c21c;
-    bytes32 constant betax1_1  = 0xe01f4ab81eb53fdb888b70ebeba4ebd832e8f50c3cf8be7dddb9ff4ee49bd9ba;
-    bytes32 constant betay1_0  = 0x000000000000000000000000000000000bc41734b3495478d79fe18e72602836;
-    bytes32 constant betay1_1  = 0x495d1ec6696e9545173d4605bf585fea10022a0e3df8d3f23f655514b51b51bb;
-    bytes32 constant betax2_0  = 0x000000000000000000000000000000000e6134b38fbff6bcb0e3f50205d4c327;
-    bytes32 constant betax2_1  = 0xc8ceab463b8e630d2028e49f7fda26056370ab72b35ef1b2fa68de1c6dddfb2b;
-    bytes32 constant betay2_0  = 0x000000000000000000000000000000000d3faf483b877604007903f5e8c9e121;
-    bytes32 constant betay2_1  = 0xe6e764d35ddea6334ba21aed110301bc6ea2cc13dbb1e4132ea68ffcf7ec34fb;
+    bytes32 constant betax1_0  = 0x000000000000000000000000000000000a2dc4ec42e832824d068834086d1692;
+    bytes32 constant betax1_1  = 0x912e647dd0d82595a30deff528f98c17a59802fe2ff88593920f298b0eb1490b;
+    bytes32 constant betay1_0  = 0x00000000000000000000000000000000056c76173acbcaa2e5d0cdfe1eee5b23;
+    bytes32 constant betay1_1  = 0xd8f169dda6f9a426be2ca041af54ea397dc1b74529e90f6c79141c3288fd9bf2;
+    bytes32 constant betax2_0  = 0x0000000000000000000000000000000008456842198fe0a5544d10fa2247c8db;
+    bytes32 constant betax2_1  = 0xc7c5722722981e74f146860957d161903f06f6ef4e60cb90983f37ba4f888a15;
+    bytes32 constant betay2_0  = 0x000000000000000000000000000000000dadf33cd97b70cf9db1594d3892c705;
+    bytes32 constant betay2_1  = 0x26c6640df2fd4f227e21bb56c851779279b79b11993cb8d2f16cf074de56deed;
 
     bytes32 constant gammax1_0 = 0x00000000000000000000000000000000024aa2b2f08f0a91260805272dc51051;
     bytes32 constant gammax1_1 = 0xc6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8;
@@ -68,14 +68,14 @@ contract Groth16Verifier {
     bytes32 constant deltay2_1 = 0xcb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be;
 
     uint256 constant nPublic = 2;
-    bytes32 constant IC0x_0 = 0x0000000000000000000000000000000017701d942833d4676e6722b005a67116;
-    bytes32 constant IC0x_1 = 0x9f4168d43cc1e30554338f117feb466c950009a349a6d0575ba4f96701a2ffa5;
-    bytes32 constant IC0y_0 = 0x000000000000000000000000000000000c50be4aa05a2a5d7f8e103ceed67161;
-    bytes32 constant IC0y_1 = 0x3f4fce322875fcc97963a80c62ef08c63a341fa091626ad188cd76eb9fb8fb26;
-    bytes32 constant IC1x_0 = 0x000000000000000000000000000000000ad098472ca0878240398852abde8262;
-    bytes32 constant IC1x_1 = 0xc4913113c7ec55461e1017d7777245f4bb4632c9ea2a3c387ac177f0808a2c69;
-    bytes32 constant IC1y_0 = 0x0000000000000000000000000000000009912644f1e61297f23535750aa3af11;
-    bytes32 constant IC1y_1 = 0x84b54326bf1ad0e6e8f354f602080a7665bcd2a0a59debe56fe293e6efa3491d;
+    bytes32 constant IC0x_0 = 0x0000000000000000000000000000000005107a2acbd409bb09513b7a83d0c6b1;
+    bytes32 constant IC0x_1 = 0xc01d528f07c55c5a47b276b3c6df0b5e812927fcb01e7fd3e9a9663b68f3c7d0;
+    bytes32 constant IC0y_0 = 0x000000000000000000000000000000000c5beb467829d8c27eec670976b7d392;
+    bytes32 constant IC0y_1 = 0x43cb8537719120eeb743a962f4f3a752614f372a90bfa8c0e3fdf70fb208c96a;
+    bytes32 constant IC1x_0 = 0x0000000000000000000000000000000001a5ef7fe21f48d5f3677f45de2fdce1;
+    bytes32 constant IC1x_1 = 0xac94bd836f74d82a58efa58908e930fa4dbb77788f03e32da7f3f036b3c76e2a;
+    bytes32 constant IC1y_0 = 0x000000000000000000000000000000000675ad2922bde59f673a244ada6c3846;
+    bytes32 constant IC1y_1 = 0x6de1af493a8ef3dc04fc624f8db59deeff42514577e95dc67e5c526973017bb6;
 
     // proof structure:
     // negA: 128 bytes
@@ -90,7 +90,7 @@ contract Groth16Verifier {
         proofLength = 512 + 32 * nPublic;
     }
  
-    function verifyProof(bytes calldata proof) public view returns (bool isValid) {
+    function verifyProof(bytes calldata proof) public view returns (bool){
         // assembly does not support immutable variables
         uint256 _proofLength = proofLength;
         assembly {
@@ -120,14 +120,12 @@ contract Groth16Verifier {
             mstore(256, IC1y_1)
             calldatacopy(288, add(o, 544), 32)
             // vk
+            // TODO: optimize by not including IC0 in the MSM (since every point multiplied by 1 is itself)
             let success := staticcall(sub(gas(), 2000), G1_MSM_PRECOMPILE, 0, 320, 0, 128)
             if iszero(success) {
                 mstore(0, 0)
                 return(0, 0x20)
             }
-            // mstore(0, 0)
-            // return(0, 0x20)
-
             // https://www.zeroknowledgeblog.com/index.php/groth16
             // e(vk, gamma) * e(C, delta) * e(alpha, beta) * e(-A, B) == 1
 
@@ -175,7 +173,7 @@ contract Groth16Verifier {
                 return(0, 0x20)
             }
 
-            isValid := mload(0)
+            return(0, 0x20)
         }
     }
  }

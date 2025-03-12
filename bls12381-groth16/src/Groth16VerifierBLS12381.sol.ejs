@@ -1,28 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-//----------------------------------------------------------------------------//
-//                                                                            //
-//  This file is a modified version of the original groth16 verifier template //
-//  from https://github.com/iden3/snarkjs                                     //
-//                                                                            //
-//----------------------------------------------------------------------------//
-/*
-    Copyright 2021 0KIMS association.
-
-    This file is generated with [snarkJS](https://github.com/iden3/snarkjs).
-
-    snarkJS is a free software: you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    snarkJS is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-    or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public
-    License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with snarkJS. If not, see <https://www.gnu.org/licenses/>.
-*/
+// Creator: Rubydusa 2025
 
 pragma solidity >=0.7.0 <0.9.0;
 
@@ -68,14 +45,14 @@ contract Groth16Verifier {
     bytes32 constant deltay2_1 = <%= vk.delta[1][3] %>;
 
     uint256 constant nPublic = <%= vk.ic.length %>;
-    bytes32 constant IC0x_0 = <%= vk.ic[0][0][0] %>;
-    bytes32 constant IC0x_1 = <%= vk.ic[0][0][1] %>;
-    bytes32 constant IC0y_0 = <%= vk.ic[0][1][0] %>;
-    bytes32 constant IC0y_1 = <%= vk.ic[0][1][1] %>;
-    bytes32 constant IC1x_0 = <%= vk.ic[1][0][0] %>;
-    bytes32 constant IC1x_1 = <%= vk.ic[1][0][1] %>;
-    bytes32 constant IC1y_0 = <%= vk.ic[1][1][0] %>;
-    bytes32 constant IC1y_1 = <%= vk.ic[1][1][1] %>;
+    bytes32 constant IC0x_0 = <%= vk.ic[0][0] %>;
+    bytes32 constant IC0x_1 = <%= vk.ic[0][1] %>;
+    bytes32 constant IC0y_0 = <%= vk.ic[0][2] %>;
+    bytes32 constant IC0y_1 = <%= vk.ic[0][3] %>;
+    bytes32 constant IC1x_0 = <%= vk.ic[1][0] %>;
+    bytes32 constant IC1x_1 = <%= vk.ic[1][1] %>;
+    bytes32 constant IC1y_0 = <%= vk.ic[1][2] %>;
+    bytes32 constant IC1y_1 = <%= vk.ic[1][3] %>;
 
     // proof structure:
     // negA: 128 bytes
@@ -90,7 +67,7 @@ contract Groth16Verifier {
         proofLength = 512 + 32 * nPublic;
     }
  
-    function verifyProof(bytes calldata proof) public view returns (bool isValid){
+    function verifyProof(bytes calldata proof) public view returns (bool){
         // assembly does not support immutable variables
         uint256 _proofLength = proofLength;
         assembly {
@@ -108,18 +85,20 @@ contract Groth16Verifier {
             }
 
             let o := proof.offset
+            // TOOD: make it compatible with templates
             // msm of pub signals
             mstore(0, IC0x_0)
-            mstore(32, IC0y_0)
-            mstore(64, IC1x_0)
-            mstore(96, IC1y_0)
+            mstore(32, IC0x_1)
+            mstore(64, IC0y_0)
+            mstore(96, IC0y_1)
             calldatacopy(128, add(o, 512), 32)
-            mstore(160, IC0x_1)
-            mstore(192, IC0y_1)
-            mstore(224, IC1x_1)
+            mstore(160, IC1x_0)
+            mstore(192, IC1x_1)
+            mstore(224, IC1y_0)
             mstore(256, IC1y_1)
             calldatacopy(288, add(o, 544), 32)
             // vk
+            // TODO: optimize by not including IC0 in the MSM (since every point multiplied by 1 is itself)
             let success := staticcall(sub(gas(), 2000), G1_MSM_PRECOMPILE, 0, 320, 0, 128)
             if iszero(success) {
                 mstore(0, 0)
@@ -138,7 +117,7 @@ contract Groth16Verifier {
             mstore(320, gammay2_0)
             mstore(352, gammay2_1)
             // C
-            calldatacopy(384, add(0, 384), 128)
+            calldatacopy(384, add(o, 384), 128)
             // delta
             mstore(512, deltax1_0)
             mstore(544, deltax1_1)
@@ -172,7 +151,7 @@ contract Groth16Verifier {
                 return(0, 0x20)
             }
 
-            isValid := mload(0)
+            return(0, 0x20)
         }
     }
  }
