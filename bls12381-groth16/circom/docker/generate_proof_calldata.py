@@ -43,6 +43,10 @@ def main():
         ''.join([x[2:] for x in pub_signals])
     
     result = {
+        'pi_a': pi_a,
+        'pi_b': pi_b,
+        'pi_c': pi_c,
+        'pub_signals': pub_signals,
         'calldata': calldata
     }
 

@@ -20,6 +20,8 @@ RUN npm install -g snarkjs
 # Set working directory
 WORKDIR /app
 
+RUN mkdir -p /app/out
+
 # Copy circuit and script files
 COPY . .
 
