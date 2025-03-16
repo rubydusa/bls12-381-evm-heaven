@@ -46,14 +46,12 @@ contract Groth16Verifier {
 
     uint256 constant nPublic = <%= vk.ic.length %>;
     uint256 constant proofLength = <%= 512 + 32 * vk.ic.length %>;
-    bytes32 constant IC0x_0 = <%= vk.ic[0][0] %>;
-    bytes32 constant IC0x_1 = <%= vk.ic[0][1] %>;
-    bytes32 constant IC0y_0 = <%= vk.ic[0][2] %>;
-    bytes32 constant IC0y_1 = <%= vk.ic[0][3] %>;
-    bytes32 constant IC1x_0 = <%= vk.ic[1][0] %>;
-    bytes32 constant IC1x_1 = <%= vk.ic[1][1] %>;
-    bytes32 constant IC1y_0 = <%= vk.ic[1][2] %>;
-    bytes32 constant IC1y_1 = <%= vk.ic[1][3] %>;
+    <% for (let i = 0; i < vk.ic.length; i++) { %>
+    bytes32 constant IC<%= i %>x_0 = <%= vk.ic[i][0] %>;
+    bytes32 constant IC<%= i %>x_1 = <%= vk.ic[i][1] %>;
+    bytes32 constant IC<%= i %>y_0 = <%= vk.ic[i][2] %>;
+    bytes32 constant IC<%= i %>y_1 = <%= vk.ic[i][3] %>;
+    <% } %>
 
     // proof structure:
     // negA: 128 bytes
@@ -76,18 +74,14 @@ contract Groth16Verifier {
             }
 
             let o := proof.offset
-            // TOOD: make it compatible with templates
             // msm of pub signals
-            mstore(0, IC0x_0)
-            mstore(32, IC0x_1)
-            mstore(64, IC0y_0)
-            mstore(96, IC0y_1)
-            calldatacopy(128, add(o, 512), 32)
-            mstore(160, IC1x_0)
-            mstore(192, IC1x_1)
-            mstore(224, IC1y_0)
-            mstore(256, IC1y_1)
-            calldatacopy(288, add(o, 544), 32)
+            <% for (let i = 0; i < vk.ic.length; i++) { %>
+            mstore(<%= 160 * i %>, IC<%= i %>x_0)
+            mstore(<%= 160 * i + 32 %>, IC<%= i %>x_1)
+            mstore(<%= 160 * i + 64 %>, IC<%= i %>y_0)
+            mstore(<%= 160 * i + 96 %>, IC<%= i %>y_1)
+            calldatacopy(<%= 160 * i + 128 %>, add(o, <%= 512 + 32 * i %>), 32)
+            <% } %>
             // vk
             // TODO: optimize by not including IC0 in the MSM (since every point multiplied by 1 is itself)
             let success := staticcall(sub(gas(), 2000), G1_MSM_PRECOMPILE, 0, 320, 0, 128)
