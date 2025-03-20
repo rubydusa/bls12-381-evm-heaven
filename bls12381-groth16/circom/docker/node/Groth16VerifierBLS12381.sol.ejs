@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
-// Creator: Rubydusa 2025
+// Author: Rubydusa 2025
 
 pragma solidity >=0.7.0 <0.9.0;
 
-// TODO: instead of returning nothing, return error selectors
 contract Groth16Verifier {
     // precompiles
     uint256 constant G1_MSM_PRECOMPILE = 12;
@@ -53,26 +52,34 @@ contract Groth16Verifier {
     bytes32 constant IC<%= i %>y_1 = <%= vk.ic[i][3] %>;
     <% } %>
 
+    bytes4 constant ERROR_NOT_IN_FIELD = 0x81452424;  // cast sig "NotInField(uint256)"
+    bytes4 constant ERROR_INVALID_PROOF_LENGTH = 0x4dc5f6a4;  // cast sig "InvalidProofLength()"
+    bytes4 constant ERROR_G1_MSM_FAILED = 0x5f776986;  // cast sig "G1MSMFailed()"
+    bytes4 constant ERROR_PAIRING_FAILED = 0x4df45e2f;  // cast sig "PairingFailed()"
+
     // proof structure:
     // negA: 128 bytes
     // B: 256 bytes
     // C: 128 bytes
     // pubSignals: 32 * nPublic bytes
+    // TODO: there is a bug: there should be 1 less pub signal because the first one is the constant 1
     function verifyProof(bytes calldata proof) public view returns (bool){
         assembly {
             function checkField(v) {
                 if iszero(lt(v, q)) {
-                    mstore(0, 0)
-                    return(0, 0x20)
+                    mstore(0, ERROR_NOT_IN_FIELD)
+                    mstore(4, v)
+                    revert(0, 0x24)
                 }
             }
 
             // check proof length
             if iszero(eq(proof.length, proofLength)) {
-                mstore(0, 0)
-                return(0, 0x20)
+                mstore(0, ERROR_INVALID_PROOF_LENGTH)
+                revert(0, 0x04)
             }
 
+            let tmp := 0
             let o := proof.offset
             // msm of pub signals
             <% for (let i = 0; i < vk.ic.length; i++) { %>
@@ -80,14 +87,16 @@ contract Groth16Verifier {
             mstore(<%= 160 * i + 32 %>, IC<%= i %>x_1)
             mstore(<%= 160 * i + 64 %>, IC<%= i %>y_0)
             mstore(<%= 160 * i + 96 %>, IC<%= i %>y_1)
-            calldatacopy(<%= 160 * i + 128 %>, add(o, <%= 512 + 32 * i %>), 32)
+            tmp := calldataload(add(o, <%= 512 + 32 * i %>))
+            checkField(tmp)
+            mstore(<%= 160 * i + 128 %>, tmp)
             <% } %>
             // vk
             // TODO: optimize by not including IC0 in the MSM (since every point multiplied by 1 is itself)
             let success := staticcall(sub(gas(), 2000), G1_MSM_PRECOMPILE, 0, 320, 0, 128)
             if iszero(success) {
-                mstore(0, 0)
-                return(0, 0x20)
+                mstore(0, ERROR_G1_MSM_FAILED)
+                revert(0, 0x04)
             }
             // https://www.zeroknowledgeblog.com/index.php/groth16
             // e(vk, gamma) * e(C, delta) * e(alpha, beta) * e(-A, B) == 1
@@ -132,8 +141,8 @@ contract Groth16Verifier {
             // result of pairing check is saved to offset 0
             success := staticcall(sub(gas(), 2000), PAIRING_PRECOMPILE, 0, 1536, 0, 32)
             if iszero(success) {
-                mstore(0, 0)
-                return(0, 0x20)
+                mstore(0, ERROR_PAIRING_FAILED)
+                revert(0, 0x04)
             }
 
             return(0, 0x20)
