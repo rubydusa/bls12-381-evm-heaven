@@ -7,6 +7,7 @@ interface IGroth16VerifierBLS12381Errors {
     error NotInField(uint256);
     error InvalidProofLength();
     error G1MSMFailed();
+    error G1AddFailed();
     error PairingFailed();
 }
 

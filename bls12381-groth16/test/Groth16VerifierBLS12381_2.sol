@@ -12,9 +12,10 @@ import {IGroth16VerifierBLS12381Errors} from "../src/interfaces/IGroth16Verifier
 // C: 128 bytes
 // pubSignals: 32 * nPublic bytes
 contract Groth16VerifierTest_2 is Test, IGroth16VerifierBLS12381Errors {
+    address constant G1ADD_PRECOMPILE = address(11);
     address constant G1MSM_PRECOMPILE = address(12);
 
-    bytes constant _calldata = hex"00000000000000000000000000000000077b91a7b280fe254b2be272030b9c6c0b10d9716b455c47b6e6b7cc5fa67b499d88d12ee00d1794bd0941c334a7db2100000000000000000000000000000000117d4dcd537577e5132c96950e7d510cbf3ede8257f16f6c467869e62247a7feb08caa01492470162d5e11eef103048b0000000000000000000000000000000011379e4e157ed1c33d65926851e9b9737dcb93dd99201714611812f3dbec27091566bab9c073bdac9fb106374811e73500000000000000000000000000000000009501e55b58dddaa682e64a8036181a70e8807837f428300f04968fc53d1c0da4a8c673c4c0143b5689ff8131ed106000000000000000000000000000000000058a051573109fb3e6a988645177eb1d4d495edd184b6ddd04e8da0413b9bfcf84946252d201fd6a4c3b16281cbc3da30000000000000000000000000000000000579ce461b1d0c1fb0128f93ab4b0a907aa3dbb2e7e706a7c42b286e8000b64651f1e3ff1d29a2d50ce539822ab806800000000000000000000000000000000003c0ffd68c80bed848e4b0d65b9af03e3d3235ce1437921a33e25215a349100c927b1e9621157296f92c5723e9e2796000000000000000000000000000000000c639a170c9ddd251b3414b61ac4b7610b283e8448d70fcfa55a45359ef0a78bc2a3b91d9a3b8f2fd05e499fcd8fa83400000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000008";
+    bytes constant _calldata = hex"0000000000000000000000000000000014bffc707a7a558910347433d31e986a34283ce3d25aedff7a5fc43853086d4077d8997224e77141fe0a5adfabccc519000000000000000000000000000000001117af7307c9bc41957ab426ff0d17ab9ba9d5b44b5f9bc1e557c60d8c28bee65821d7cb37c692944540765519f36ff800000000000000000000000000000000170208334bcfc047ce577c4f9acfdfa30376700864920e45bc42ef6262d8738e4128bc7d503af12e24a642d22031306500000000000000000000000000000000024ef824cf055b04c7a98bce61bf3a7e02e66b2fbf3e30a2dc0351c8349ca7cfd7abc903dca2b614ee22f27c267e8ecd00000000000000000000000000000000155fd6a3360a18b71dbbe8d5da31bb1aff10efd21b607887f205587cbd2fbd09654f8a2c0ec253e34ab30cb9a32193950000000000000000000000000000000004917150e859bdc670008d4a33097607d4b5e9c36fde9d4961357a6e407575806cda76d836a90c678b65b5463d1cb26a0000000000000000000000000000000001eb1210f8b713096fa0a8749850e3bb1f5178ea6ba26f6bd5b83c21d5451e48181bb2f753ff2c05dfc717b7065632f900000000000000000000000000000000159a7c4cd0fdc64d105d4499e9b35797f7a423c547d98497a1764a50202b9500ee52d23b5939681131a022bba8b05b1a0000000000000000000000000000000000000000000000000000000000000008";
     Groth16Verifier verifier;
 
     function setUp() public {
@@ -44,7 +45,7 @@ contract Groth16VerifierTest_2 is Test, IGroth16VerifierBLS12381Errors {
         assertFalse(result);
     }
 
-    function testVerify_verifyProof_revert_NotInField() public {
+    function test_verifyProof_revert_NotInField() public {
         bytes memory _calldataMalformed = _calldata;
         uint256 invalidScalar = type(uint256).max;
         assembly { 
@@ -54,7 +55,7 @@ contract Groth16VerifierTest_2 is Test, IGroth16VerifierBLS12381Errors {
         verifier.verifyProof(_calldataMalformed);
     }
 
-    function testVerify_verifyProof_revert_InvalidProofLength() public {
+    function test_verifyProof_revert_InvalidProofLength() public {
         bytes memory _calldataMalformed = _calldata;
         assembly {
             mstore(_calldataMalformed, 1234)
@@ -64,15 +65,23 @@ contract Groth16VerifierTest_2 is Test, IGroth16VerifierBLS12381Errors {
     }
 
     // Should not happen unless a chain has a conflicting precompile at G1MSM's precompile address
-    function testVerify_verifyProof_revert_G1MSMFailed() public {
+    function test_verifyProof_revert_G1MSMFailed() public {
         bytes memory empty;
         vm.mockCallRevert(G1MSM_PRECOMPILE, empty, empty);
         vm.expectRevert(abi.encodeWithSelector(G1MSMFailed.selector));
         verifier.verifyProof(_calldata);
     }
 
+    // Should not happen unless a chain has a conflicting precompile at G1ADD's precompile address
+    function test_verifyProof_revert_G1AddFailed() public {
+        bytes memory empty;
+        vm.mockCallRevert(G1ADD_PRECOMPILE, empty, empty);
+        vm.expectRevert(abi.encodeWithSelector(G1AddFailed.selector));
+        verifier.verifyProof(_calldata);
+    }
+
     // This pairing failed is on the basis of an invalid curve point
-    function testVerify_verifyProof_revert_PairingFailed() public {
+    function test_verifyProof_revert_PairingFailed() public {
         bytes memory _calldataMalformed = _calldata;
         // invalidate x coordinate of negA
         assembly {
