@@ -173,6 +173,16 @@ library BLS12381Lib {
     }
 
     /**
+     * @dev Negates a G1 curve point
+     * @param point The G1 point to negate
+     * @return result The resulting G1 point after negation
+     */
+    function negG1(_T.G1Point point) internal view returns (_T.G1Point result) {
+        bytes memory input = point.mem();
+    }
+    
+
+    /**
      * @dev Maps a field element in Fp to a point on the G1 curve using the map-to-curve precompile
      * @param element The Fp field element to map to G1
      * @return result The resulting G1 point after mapping
@@ -485,4 +495,81 @@ library RFC9380 {
     error EllTooLarge(uint256 ell);
     error LengthTooLarge(uint256 len_in_bytes);
     error DSTTooLong(uint256 dst_length);
+}
+
+
+// operations on the base field Fp of BLS12-381
+library BLS12381FpLib {
+    // BLS12-381 base field prime
+    bytes constant P = hex"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab";
+
+    function toFp(uint256 a) internal view returns (IBLSTypes.Fp result) {
+        bytes memory aBytes = abi.encode(a);
+        return toFp(aBytes);
+    }
+
+    function toFp(bytes memory a) internal view returns (IBLSTypes.Fp result) {
+        bytes memory resultModP = Math.modExp(a, hex"01", P);
+        bytes memory resultBytes = new bytes(64);
+        _rightPadTo(resultModP, resultBytes);
+        assembly {
+            result := resultBytes
+        }
+    }
+    // does not validate a and b are in Fp
+    function add(IBLSTypes.Fp a, IBLSTypes.Fp b) internal view returns (IBLSTypes.Fp result) {
+        uint256 a0;
+        uint256 a1;
+        uint256 b0;
+        uint256 b1;
+        bytes memory resultBytes = new bytes(64);
+
+        assembly {
+            a0 := mload(add(a, 0x40))
+            a1 := mload(add(a, 0x60))
+            b0 := mload(add(b, 0x40))
+            b1 := mload(add(b, 0x60))
+
+            let c0 := add(a0, b0)
+            let carry0 := gt(c0, a0)
+            // we don't check carry of c1 because the sum of two Fp elements is at most 49 bytes (382 bits)
+            let c1 := add(add(a1, b1), carry0)
+            mstore(add(resultBytes, 0x20), c1)
+            mstore(add(resultBytes, 0x40), c0)
+        }
+
+        bytes memory resultModP = Math.modExp(resultBytes, hex"01", P);
+        // clear resultBytes
+        assembly { 
+            mstore(add(resultBytes, 0x20), 0)
+            mstore(add(resultBytes, 0x40), 0)
+        }
+        _rightPadTo(resultModP, resultBytes);
+        assembly {
+            result := resultBytes
+        }
+    }
+
+    function sub(IBLSTypes.Fp a, IBLSTypes.Fp b) internal view returns (IBLSTypes.Fp result) {
+        // TODO
+    }
+
+    function mul(IBLSTypes.Fp a, IBLSTypes.Fp b) internal view returns (IBLSTypes.Fp result) {
+        // TODO
+    }
+
+    function neg(IBLSTypes.Fp a) internal view returns (IBLSTypes.Fp result) {
+        // TODO
+    }
+
+    // does not validate src is smaller than dest
+    // does not validate dest is clear
+    function _rightPadTo(bytes memory src, bytes memory dest) internal pure {
+        assembly {
+            let src_len := mload(src)
+            let dest_len := mload(dest)
+            let pad := sub(dest_len, src_len)
+            mcopy(add(dest, add(0x20, pad)), add(src, 0x20), src_len)
+        }
+    }
 }
