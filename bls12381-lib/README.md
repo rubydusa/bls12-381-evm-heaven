@@ -10,3 +10,10 @@ Main items:
 
 ### RFC9380
 - `expand_message_xmd` and `hash_to_curve` methods from [RFC9380](https://datatracker.ietf.org/doc/html/rfc9380).
+
+## TODO
+
+- [ ] Fp library
+- [ ] Fp2 library
+- [ ] negG1
+- [ ] negG2
