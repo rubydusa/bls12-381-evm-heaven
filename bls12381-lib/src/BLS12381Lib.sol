@@ -261,7 +261,7 @@ library BLS12381Lib {
      */
     function mem(_T.G2Point point) internal pure returns (bytes memory result) { assembly { result := point } }
 
-    // TODO: consider moving errors to an interface so it can be imported by contracts
+    // TODO: consider moving errors to an interface so it can be inherited by contracts
     /**
      * @dev Error thrown when a precompile call fails unexpectedly
      * @param data The error data returned by the precompile
