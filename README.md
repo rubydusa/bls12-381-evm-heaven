@@ -6,3 +6,10 @@ This monorepo contains various projects using the Pectra BLS12-381 precompiles.
 - `bls12381-groth16`: Solidity Groth16 verifier template compatible with circom
 - `validate-beacon-sig-on-chain-poc` (WIP): Validating beacon chain signatures on-chain 
 
+## Setup
+Setup submodules:
+```bash
+git submodule update --init --recursive
+```
+
+
