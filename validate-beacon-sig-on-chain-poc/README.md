@@ -2,9 +2,9 @@
 
 ## Overview
 
-Using the new Pectra BLS precompiles, we can validate consensus-layer signatures on-chain.
+Using the new Pectra BLS precompiles, we can validate consensus layer signatures on-chain.
 
-This could be useful for applications like an on-chain Ethereum light client but on a different EVM chain.
+This could be useful for applications like an on-chain light client.
 
 ## TODO:
 - [ ] Figure out how to use `eth2spec` to verify the attestation signature (validate only validators from first attestation for Proof of Concept)
