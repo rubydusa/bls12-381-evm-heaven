@@ -1,7 +1,4 @@
 # BLS12-381 EVM Haven
-A collection of libraries and tools for working with BLS12-381 elliptic curve cryptography on EVM chains.
-
-## Overview
 This monorepo contains various projects using the Pectra BLS12-381 precompiles.
 
 ## Projects
